@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tochti/session-stores"
+	"github.com/tochti/session-store"
 )
 
 type (
