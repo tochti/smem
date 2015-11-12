@@ -6,26 +6,34 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/tochti/session-stores"
 )
 
 type (
-	Session struct {
-		Token   string
-		UserID  string
-		Expires time.Time
-	}
 	store struct {
 		mutex sync.Mutex
 		data  map[string]Session
 	}
 
-	SessionStore interface {
-		NewSession(string, time.Time) (string, error)
-		ReadSession(string) (Session, bool)
-		RemoveSession(string) error
-		RemoveExpiredSessions() (int, error)
+	Session struct {
+		token   string
+		userID  string
+		expires time.Time
 	}
 )
+
+func (s Session) Token() string {
+	return s.token
+}
+
+func (s Session) UserID() string {
+	return s.userID
+}
+
+func (s Session) Expires() time.Time {
+	return s.expires
+}
 
 func NewStore() store {
 	return store{
@@ -34,25 +42,27 @@ func NewStore() store {
 	}
 }
 
-func (s *store) NewSession(userID string, expire time.Time) (string, error) {
+func (s *store) NewSession(userID string, expire time.Time) (s2tore.Session, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	token, err := NewSessionToken()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	s.data[token] = Session{
-		Token:   token,
-		UserID:  userID,
-		Expires: expire,
+	session := Session{
+		token:   token,
+		userID:  userID,
+		expires: expire,
 	}
 
-	return token, nil
+	s.data[token] = session
+
+	return session, nil
 }
 
-func (s *store) ReadSession(token string) (Session, bool) {
+func (s *store) ReadSession(token string) (s2tore.Session, bool) {
 	s.mutex.Lock()
 
 	v, ok := s.data[token]
@@ -61,7 +71,7 @@ func (s *store) ReadSession(token string) (Session, bool) {
 		return Session{}, false
 	}
 
-	if v.Expires.Before(time.Now()) {
+	if v.expires.Before(time.Now()) {
 		s.mutex.Unlock()
 		s.RemoveSession(token)
 		return Session{}, false
@@ -87,7 +97,7 @@ func (s *store) RemoveExpiredSessions() (int, error) {
 
 	c := 0
 	for key, val := range s.data {
-		if val.Expires.Before(time.Now()) {
+		if val.expires.Before(time.Now()) {
 			delete(s.data, key)
 			c++
 		}

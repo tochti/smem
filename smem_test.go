@@ -15,19 +15,19 @@ func Test_smem(t *testing.T) {
 		store := NewStore()
 
 		expire := time.Now().Add(1 * time.Hour)
-		token, err := store.NewSession("test", expire)
+		newSession, err := store.NewSession("test", expire)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		session, ok := store.ReadSession(token)
+		session, ok := store.ReadSession(newSession.Token())
 		if !ok {
-			t.Fatal("Expect to find session", token)
+			t.Fatal("Expect to find session", newSession.Token())
 		}
 
-		if session.Token != token ||
-			session.Expires != expire ||
-			session.UserID != "test" {
+		if session.Token() != newSession.Token() ||
+			session.Expires() != expire ||
+			session.UserID() != "test" {
 			t.Fatal("Wrong data in returned session", session)
 		}
 
@@ -36,21 +36,21 @@ func Test_smem(t *testing.T) {
 			t.Fatal("Expect to find no session")
 		}
 
-		err = store.RemoveSession(token)
+		err = store.RemoveSession(newSession.Token())
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		out := time.Now().Add(-1 * time.Hour)
-		token, err = store.NewSession("test2", out)
+		newSession, err = store.NewSession("test2", out)
 
-		session, ok = store.ReadSession(token)
+		session, ok = store.ReadSession(newSession.Token())
 		if ok {
 			t.Fatal("Expect to find no session due tu expired")
 		}
 
 		out = time.Now().Add(-1 * time.Hour)
-		token, err = store.NewSession("test3", out)
+		_, err = store.NewSession("test3", out)
 
 		n, err := store.RemoveExpiredSessions()
 		if err != nil {
