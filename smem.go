@@ -35,8 +35,8 @@ func (s Session) Expires() time.Time {
 	return s.expires
 }
 
-func NewStore() store {
-	return store{
+func NewStore() s2tore.SessionStore {
+	return &store{
 		mutex: sync.Mutex{},
 		data:  map[string]Session{},
 	}
